@@ -1,0 +1,9 @@
+*.class
+*.jar
+
+.idea/
+*.iml
+.vscode/
+*.log
+
+*.tmp
