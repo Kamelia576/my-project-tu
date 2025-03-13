@@ -70,18 +70,3 @@ public class RasterImageEditor {
     }
 }
 
-class SessionManager {
-    private int sessionId = 1;
-    private List<String> images = new ArrayList<>();
-
-    public void loadImage(String filename) {
-        images.add(filename);
-        System.out.println("Session with ID: " + sessionId + " started");
-        System.out.println("Image \"" + filename + "\" added");
-    }
-
-    public void printSessionInfo() {
-        System.out.println("Session ID: " + sessionId);
-        System.out.println("Loaded images: " + String.join(", ", images));
-    }
-}
