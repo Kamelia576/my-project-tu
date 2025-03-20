@@ -38,7 +38,14 @@ public class RasterImageEditor {
             case "session info":
                 sessionManager.printSessionInfo();
                 break;
-            case "help":
+                case "view":
+    if (!sessionManager.getImages().isEmpty()) {
+        sessionManager.getImages().get(0).displayImage();
+    } else {
+        System.out.println("No images loaded in the session.");
+    }
+    break;
+           case "help":
                 printHelp();
                 break;
             case "exit":
