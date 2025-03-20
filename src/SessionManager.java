@@ -24,4 +24,8 @@ public class SessionManager {
         }
         System.out.println();
     }
+        public List<ImageProcessor> getImages() {
+    return images;
+
+    }
 }
