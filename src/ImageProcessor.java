@@ -45,19 +45,25 @@ public class ImageProcessor {
 
     public String getFilename() {
         return filename;
-
-
-        public void displayImage() {
-    if (pixelData.isEmpty()) {
-        System.out.println("No image data loaded.");
-        return;
     }
 
-    System.out.println("Displaying image: " + filename);
-    for (String line : pixelData) {
-        System.out.println(line);
+    public void displayImage() {
+        if (pixelData.isEmpty()) {
+            System.out.println("No image data loaded.");
+            return;
+        }
+
+        System.out.println("Displaying image: " + filename);
+        for (String line : pixelData) {
+            System.out.println(line);
+        }
+
     }
 }
 
-    }
-}
+
+            
+
+
+
+

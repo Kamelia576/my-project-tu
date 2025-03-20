@@ -39,7 +39,6 @@ public class RasterImageEditor {
                 sessionManager.printSessionInfo();
                 break;
 
-            case "help":
 
                 case "view":
             if (!sessionManager.getImages().isEmpty()) {
