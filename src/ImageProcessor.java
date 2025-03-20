@@ -17,6 +17,7 @@ public class ImageProcessor {
     public boolean load() {
         try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
             format = reader.readLine().trim();
+            System.out.println("DEBUG: Read format -> '" + format + "'");
             if (!format.equals("P1") && !format.equals("P2") && !format.equals("P3")) {
                 System.out.println("Unsupported format: " + format);
                 return false;
@@ -60,10 +61,3 @@ public class ImageProcessor {
 
     }
 }
-
-
-            
-
-
-
-
