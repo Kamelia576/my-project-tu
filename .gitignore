@@ -7,5 +7,4 @@
 *.log
 
 *.tmp
-out/
-FETCH_HEAD
+desktop.ini
