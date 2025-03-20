@@ -7,3 +7,5 @@
 *.log
 
 *.tmp
+out/
+FETCH_HEAD
