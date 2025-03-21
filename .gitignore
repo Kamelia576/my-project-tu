@@ -9,3 +9,4 @@
 *.tmp
 desktop.iniFETCH_HEAD
 out/
+FETCH_HEAD
