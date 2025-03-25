@@ -58,6 +58,57 @@ public class ImageProcessor {
         for (String line : pixelData) {
             System.out.println(line);
         }
+    }
 
+    public void save() {
+        saveAs(filename);  // Save използва текущото име
+    }
+
+    public void saveAs(String newFilename) {
+        try {
+            // Проверка: ако няма директория в името, добавяме "src/"
+            String path = newFilename;
+            if (!newFilename.contains("/") && !newFilename.contains("\\")) {
+                path = "src/" + newFilename;
+            }
+
+            PrintWriter writer = new PrintWriter(path);
+            writer.println(format);
+            writer.println(width + " " + height);
+            writer.println(maxColor);
+            for (String line : pixelData) {
+                writer.println(line);
+            }
+            writer.close();
+            System.out.println("Image saved as: " + path);
+        } catch (IOException e) {
+            System.out.println("Error saving file: " + e.getMessage());
+        }
+    }
+
+    public void invert() {
+        if (format.equals("P3")) { // Color image
+            List<String> newPixelData = new ArrayList<>();
+            for (String line : pixelData) {
+                StringBuilder newLine = new StringBuilder();
+                String[] tokens = line.trim().split("\\s+");
+                for (String token : tokens) {
+                    try {
+                        int value = Integer.parseInt(token);
+                        int inverted = maxColor - value;
+                        newLine.append(inverted).append(" ");
+                    } catch (NumberFormatException e) {
+                        newLine.append(token).append(" ");
+                    }
+                }
+                newPixelData.add(newLine.toString().trim());
+            }
+            pixelData = newPixelData;
+            System.out.println("Image colors inverted.");
+        } else {
+            System.out.println("Invert operation is currently supported only for P3 images.");
+        }
     }
 }
+
+

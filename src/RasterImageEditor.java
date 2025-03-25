@@ -35,6 +35,7 @@ public class RasterImageEditor {
                     System.out.println("Usage: open <filename>");
                 }
                 break;
+
             case "load":
                 if (parts.length > 1) {
                     sessionManager.loadImage(parts[1]);
@@ -42,20 +43,56 @@ public class RasterImageEditor {
                     System.out.println("Usage: load <filename>");
                 }
                 break;
+
             case "view":
                 if (!sessionManager.getImages().isEmpty()) {
                     sessionManager.getImages().get(0).displayImage();
                 } else {
+                    System.out.println("No images loaded to view.");
+                }
+                break;
+
+            case "invert":
+                if (!sessionManager.getImages().isEmpty()) {
+                    sessionManager.getImages().get(0).invert();
+                } else {
                     System.out.println("No images loaded in the session.");
                 }
                 break;
+
+            case "save":
+                if (!sessionManager.getImages().isEmpty()) {
+                    sessionManager.getImages().get(0).save();
+                } else {
+                    System.out.println("No image to save.");
+                }
+                break;
+
+            case "saveas":
+                if (parts.length > 1) {
+                    if (!sessionManager.getImages().isEmpty()) {
+                        sessionManager.getImages().get(0).saveAs(parts[1]);
+                    } else {
+                        System.out.println("No image to save.");
+                    }
+                } else {
+                    System.out.println("Usage: saveas <filename>");
+                }
+                break;
+
+            case "session info":
+                sessionManager.printSessionInfo();
+                break;
+
             case "help":
                 printHelp();
                 break;
+
             case "exit":
                 running = false;
                 System.out.println("Exiting the program...");
                 break;
+
             default:
                 System.out.println("Unknown command. Type 'help' for a list of commands.");
         }
@@ -80,6 +117,9 @@ public class RasterImageEditor {
         System.out.println("load <file> - Loads an image into a session");
         System.out.println("session info - Displays the current session details");
         System.out.println("view - Displays the first loaded image");
+        System.out.println("invert - Inverts the colors of the currently loaded image");
+        System.out.println("save - Saves the current image to its original file");
+        System.out.println("saveas <file> - Saves the current image under a new filename");
         System.out.println("exit - Exits the program");
         System.out.println("help - Shows available commands");
     }
