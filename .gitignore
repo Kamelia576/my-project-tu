@@ -1,12 +1,10 @@
 *.class
 *.jar
-
 .idea/
 *.iml
 .vscode/
 *.log
-
 *.tmp
-desktop.iniFETCH_HEAD
+desktop.ini
 out/
 FETCH_HEAD
