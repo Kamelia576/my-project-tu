@@ -8,3 +8,4 @@
 desktop.ini
 out/
 FETCH_HEAD
+src/*.ppm
