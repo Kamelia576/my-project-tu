@@ -109,6 +109,132 @@ public class ImageProcessor {
             System.out.println("Invert operation is currently supported only for P3 images.");
         }
     }
+    public void crop(int startX, int startY, int cropWidth, int cropHeight) {
+        if (!format.equals("P2") && !format.equals("P3")) {
+            System.out.println("Crop operation is only supported for P2 and P3 formats.");
+            return;
+        }
+
+        List<String> newPixelData = new ArrayList<>();
+        int pixelsPerLine = (format.equals("P3")) ? width * 3 : width;
+        List<String> allPixels = new ArrayList<>();
+
+        // Обединяваме всички пиксели в един списък
+        for (String line : pixelData) {
+            for (String token : line.trim().split("\\s+")) {
+                if (!token.isEmpty()) {
+                    allPixels.add(token);
+                }
+            }
+        }
+
+        // Изрязване ред по ред
+        for (int row = 0; row < cropHeight; row++) {
+            int y = startY + row;
+            if (y >= height) break;
+
+            StringBuilder newLine = new StringBuilder();
+            for (int col = 0; col < cropWidth; col++) {
+                int x = startX + col;
+                if (x >= width) break;
+
+                int index = (y * width + x) * (format.equals("P3") ? 3 : 1);
+                if (index < allPixels.size()) {
+                    if (format.equals("P3")) {
+                        newLine.append(allPixels.get(index)).append(" ");
+                        newLine.append(allPixels.get(index + 1)).append(" ");
+                        newLine.append(allPixels.get(index + 2)).append(" ");
+                    } else {
+                        newLine.append(allPixels.get(index)).append(" ");
+                    }
+                }
+            }
+            newPixelData.add(newLine.toString().trim());
+        }
+
+        // Обновяване на размери и пикселни данни
+        this.width = cropWidth;
+        this.height = cropHeight;
+        this.pixelData = newPixelData;
+
+        System.out.println("Image cropped successfully.");
+    }
+    public void rotate() {
+        if (!format.equals("P2") && !format.equals("P3")) {
+            System.out.println("Rotate operation is only supported for P2 and P3 formats.");
+            return;
+        }
+
+        List<String> allPixels = new ArrayList<>();
+        for (String line : pixelData) {
+            for (String token : line.trim().split("\\s+")) {
+                if (!token.isEmpty()) {
+                    allPixels.add(token);
+                }
+            }
+        }
+
+        int newWidth = height;
+        int newHeight = width;
+        List<String> newPixelData = new ArrayList<>();
+
+        if (format.equals("P3")) {
+            for (int x = 0; x < width; x++) {
+                StringBuilder row = new StringBuilder();
+                for (int y = height - 1; y >= 0; y--) {
+                    int index = (y * width + x) * 3;
+                    if (index + 2 < allPixels.size()) {
+                        row.append(allPixels.get(index)).append(" ")
+                                .append(allPixels.get(index + 1)).append(" ")
+                                .append(allPixels.get(index + 2)).append(" ");
+                    }
+                }
+                newPixelData.add(row.toString().trim());
+            }
+        } else {
+            for (int x = 0; x < width; x++) {
+                StringBuilder row = new StringBuilder();
+                for (int y = height - 1; y >= 0; y--) {
+                    int index = y * width + x;
+                    if (index < allPixels.size()) {
+                        row.append(allPixels.get(index)).append(" ");
+                    }
+                }
+                newPixelData.add(row.toString().trim());
+            }
+        }
+
+        this.width = newWidth;
+        this.height = newHeight;
+        this.pixelData = newPixelData;
+
+        System.out.println("Image rotated 90 degrees clockwise.");
+    }
+    public void grayscale() {
+        if (!format.equals("P3")) {
+            System.out.println("Grayscale operation is only supported for P3 format.");
+            return;
+        }
+
+        List<String> newPixelData = new ArrayList<>();
+        for (String line : pixelData) {
+            StringBuilder newLine = new StringBuilder();
+            String[] tokens = line.trim().split("\\s+");
+            for (int i = 0; i < tokens.length; i += 3) {
+                try {
+                    int r = Integer.parseInt(tokens[i]);
+                    int g = Integer.parseInt(tokens[i + 1]);
+                    int b = Integer.parseInt(tokens[i + 2]);
+                    int avg = (r + g + b) / 3;
+                    newLine.append(avg).append(" ").append(avg).append(" ").append(avg).append(" ");
+                } catch (Exception e) {
+                    newLine.append("0 0 0 ");
+                }
+            }
+            newPixelData.add(newLine.toString().trim());
+        }
+
+        this.pixelData = newPixelData;
+        System.out.println("Image converted to grayscale.");
+    }
 }
-
-

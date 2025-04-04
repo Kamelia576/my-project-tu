@@ -60,6 +60,46 @@ public class RasterImageEditor {
                 }
                 break;
 
+            case "rotate":
+                if (!sessionManager.getImages().isEmpty()) {
+                    ImageProcessor current = sessionManager.getImages().get(sessionManager.getImages().size() - 1);
+                    current.rotate();
+                } else {
+                    System.out.println("No image loaded.");
+                }
+                break;
+
+            case "grayscale":
+                if (!sessionManager.getImages().isEmpty()) {
+                    sessionManager.getImages().get(0).grayscale();
+                } else {
+                    System.out.println("No image loaded.");
+                }
+                break;
+
+            case "crop":
+                if (parts.length == 5) {
+                    try {
+                        int x = Integer.parseInt(parts[1]);
+                        int y = Integer.parseInt(parts[2]);
+                        int w = Integer.parseInt(parts[3]);
+                        int h = Integer.parseInt(parts[4]);
+
+                        // Извикваме crop върху последното заредено изображение
+                        if (!sessionManager.getImages().isEmpty()) {
+                            ImageProcessor current = sessionManager.getImages().get(sessionManager.getImages().size() - 1);
+                            current.crop(x, y, w, h);
+                        } else {
+                            System.out.println("No image loaded.");
+                        }
+                    } catch (NumberFormatException e) {
+                        System.out.println("Invalid crop parameters.");
+                    }
+                } else {
+                    System.out.println("Usage: crop <x> <y> <width> <height>");
+                }
+                break;
+
             case "save":
                 if (!sessionManager.getImages().isEmpty()) {
                     sessionManager.getImages().get(0).save();
@@ -118,6 +158,9 @@ public class RasterImageEditor {
         System.out.println("session info - Displays the current session details");
         System.out.println("view - Displays the first loaded image");
         System.out.println("invert - Inverts the colors of the currently loaded image");
+        System.out.println("rotate - Rotates the image 90 degrees clockwise");
+        System.out.println("grayscale - Converts a P3 image to grayscale");
+        System.out.println("crop <x> <y> <width> <height> - Crops the image starting at (x,y) with given width and height");
         System.out.println("save - Saves the current image to its original file");
         System.out.println("saveas <file> - Saves the current image under a new filename");
         System.out.println("exit - Exits the program");
