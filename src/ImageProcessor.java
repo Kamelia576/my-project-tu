@@ -109,6 +109,7 @@ public class ImageProcessor {
             System.out.println("Invert operation is currently supported only for P3 images.");
         }
     }
+
     public void crop(int startX, int startY, int cropWidth, int cropHeight) {
         if (!format.equals("P2") && !format.equals("P3")) {
             System.out.println("Crop operation is only supported for P2 and P3 formats.");
@@ -159,6 +160,7 @@ public class ImageProcessor {
 
         System.out.println("Image cropped successfully.");
     }
+
     public void rotate() {
         if (!format.equals("P2") && !format.equals("P3")) {
             System.out.println("Rotate operation is only supported for P2 and P3 formats.");
@@ -210,6 +212,7 @@ public class ImageProcessor {
 
         System.out.println("Image rotated 90 degrees clockwise.");
     }
+
     public void grayscale() {
         if (!format.equals("P3")) {
             System.out.println("Grayscale operation is only supported for P3 format.");
@@ -236,5 +239,98 @@ public class ImageProcessor {
 
         this.pixelData = newPixelData;
         System.out.println("Image converted to grayscale.");
+    }
+
+    public void flipHorizontal() {
+        List<String> newPixelData = new ArrayList<>();
+
+        for (String line : pixelData) {
+            String[] tokens = line.trim().split("\\s+");
+
+            if (format.equals("P1") || format.equals("P2")) {
+                reverseLine(tokens);
+            } else if (format.equals("P3")) {
+                // За P3 трябва да разменяме тройки (R G B)
+                for (int i = 0; i < tokens.length / 2; i += 3) {
+                    int j = tokens.length - 3 - i;
+                    for (int k = 0; k < 3; k++) {
+                        String temp = tokens[i + k];
+                        tokens[i + k] = tokens[j + k];
+                        tokens[j + k] = temp;
+                    }
+                }
+            }
+
+            newPixelData.add(String.join(" ", tokens));
+        }
+
+        pixelData = newPixelData;
+        System.out.println("Image flipped horizontally.");
+    }
+
+    private void reverseLine(String[] tokens) {
+        for (int i = 0, j = tokens.length - 1; i < j; i++, j--) {
+            String temp = tokens[i];
+            tokens[i] = tokens[j];
+            tokens[j] = temp;
+        }
+    }
+    public void flipVertical() {
+        List<String> newPixelData = new ArrayList<>();
+
+        for (int i = pixelData.size() - 1; i >= 0; i--) {
+            newPixelData.add(pixelData.get(i));
+        }
+
+        pixelData = newPixelData;
+        System.out.println("Image flipped vertically.");
+    }
+    public void convertTo(String targetFormat) {
+        if (!format.trim().equals("P3")) {
+            System.out.println("Conversion only supported from P3 format.");
+            return;
+        }
+
+        List<String> newPixelData = new ArrayList<>();
+
+        for (String line : pixelData) {
+            StringBuilder newLine = new StringBuilder();
+            String[] tokens = line.trim().split("\\s+");
+
+            for (int i = 0; i < tokens.length; i += 3) {
+                try {
+                    int r = Integer.parseInt(tokens[i]);
+                    int g = Integer.parseInt(tokens[i + 1]);
+                    int b = Integer.parseInt(tokens[i + 2]);
+
+                    if (targetFormat.equals("P2")) {
+                        int gray = (r + g + b) / 3;
+                        newLine.append(gray).append(" ");
+                    } else if (targetFormat.equals("P1")) {
+                        int gray = (r + g + b) / 3;
+                        int bw = gray > 127 ? 0 : 1;
+                        newLine.append(bw).append(" ");
+                    }
+                } catch (Exception e) {
+                    newLine.append("0 ");
+                }
+            }
+
+            newPixelData.add(newLine.toString().trim());
+        }
+
+        this.pixelData = newPixelData;
+        this.format = targetFormat;
+        this.maxColor = targetFormat.equals("P1") ? 1 : 255;
+
+        if (targetFormat.equals("P1")) {
+            System.out.println("Image converted to black and white (P1).");
+        } else if (targetFormat.equals("P2")) {
+            System.out.println("Image converted to grayscale (P2).");
+        } else if (targetFormat.equals("P3")) {
+            System.out.println("Image remains in color (P3).");
+        } else {
+            System.out.println("Image converted to format: " + targetFormat);
+        }
     }
 }

@@ -76,6 +76,33 @@ public class RasterImageEditor {
                     System.out.println("No image loaded.");
                 }
                 break;
+            case "fliph":
+                if (!sessionManager.getImages().isEmpty()) {
+                    sessionManager.getImages().get(0).flipHorizontal();
+                } else {
+                    System.out.println("No image loaded.");
+                }
+                break;
+
+            case "flipv":
+                if (!sessionManager.getImages().isEmpty()) {
+                    sessionManager.getImages().get(0).flipVertical();
+                } else {
+                    System.out.println("No image loaded.");
+                }
+                break;
+
+            case "convert":
+                if (parts.length > 1) {
+                    if (!sessionManager.getImages().isEmpty()) {
+                        sessionManager.getImages().get(0).convertTo(parts[1]);
+                    } else {
+                        System.out.println("No image loaded.");
+                    }
+                } else {
+                    System.out.println("Usage: convert <P1 | P2>");
+                }
+                break;
 
             case "crop":
                 if (parts.length == 5) {
@@ -160,6 +187,9 @@ public class RasterImageEditor {
         System.out.println("invert - Inverts the colors of the currently loaded image");
         System.out.println("rotate - Rotates the image 90 degrees clockwise");
         System.out.println("grayscale - Converts a P3 image to grayscale");
+        System.out.println("fliph - Flips the image horizontally (left-right)");
+        System.out.println("flipv - Flips the image vertically (top-bottom)");
+        System.out.println("convert <P1 | P2> - Converts a P3 image to grayscale (P2) or black-and-white (P1)");
         System.out.println("crop <x> <y> <width> <height> - Crops the image starting at (x,y) with given width and height");
         System.out.println("save - Saves the current image to its original file");
         System.out.println("saveas <file> - Saves the current image under a new filename");
