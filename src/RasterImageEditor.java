@@ -1,199 +1,240 @@
-import java.io.*;
-import java.util.*;
+import java.util.Scanner;
 
 public class RasterImageEditor {
-    private static boolean running = true;
-    private static Scanner scanner = new Scanner(System.in);
-    private static SessionManager sessionManager = new SessionManager();
+    private static final Scanner scanner = new Scanner(System.in);
+    private static final SessionManager sessionManager = new SessionManager();
 
     public static void main(String[] args) {
-        System.out.println("Raster Image Editor Started. Type 'help' for commands.");
-
-        while (running) {
+        System.out.println("Raster Image Editor Started. Type 'help' for a list of commands.");
+        while (true) {
             System.out.print("> ");
-            String input = scanner.nextLine();
+            String input = scanner.nextLine().trim();
             processCommand(input);
         }
     }
 
-    private static void processCommand(String input) {
-        // Проверява директно за "session info" (тъй като е команда с повече от една дума)
-        if (input.equalsIgnoreCase("session info")) {
-            sessionManager.printSessionInfo();
-            return; // Спира изпълнението тук, за да не влиза в switch
-        }
-
-        // Разделя командите на части, като приема първата дума за команда
+    public static void processCommand(String input) {
+        if (input.isEmpty()) return;
         String[] parts = input.split(" ");
-        String command = parts[0].toLowerCase();
+        String command = parts[0];
 
         switch (command) {
+            case "help":
+                printHelp();
+                break;
             case "open":
-                if (parts.length > 1) {
-                    openFile(parts[1]);
-                } else {
-                    System.out.println("Usage: open <filename>");
-                }
-                break;
-
             case "load":
-                if (parts.length > 1) {
-                    sessionManager.loadImage(parts[1]);
+                if (parts.length < 2) {
+                    System.out.println("Usage: " + command + " <filename>");
+                    break;
+                }
+                String filename = parts[1];
+                ImageProcessor img = new ImageProcessor(filename);
+                if (img.load()) {
+                    sessionManager.createSession(img);
                 } else {
-                    System.out.println("Usage: load <filename>");
+                    System.out.println("Error: Failed to load image.");
                 }
                 break;
-
             case "view":
-                if (!sessionManager.getImages().isEmpty()) {
-                    sessionManager.getImages().get(0).displayImage();
+                if (sessionManager.hasActiveSession()) {
+                    sessionManager.getCurrentImage().displayImage();
                 } else {
-                    System.out.println("No images loaded to view.");
+                    System.out.println("No active session.");
                 }
                 break;
-
-            case "invert":
-                if (!sessionManager.getImages().isEmpty()) {
-                    sessionManager.getImages().get(0).invert();
+            case "save":
+                if (sessionManager.hasActiveSession()) {
+                    sessionManager.getCurrentImage().save();
                 } else {
-                    System.out.println("No images loaded in the session.");
+                    System.out.println("No active session.");
                 }
                 break;
-
+            case "saveas":
+                if (parts.length < 2) {
+                    System.out.println("Usage: saveas <newfilename>");
+                    break;
+                }
+                if (sessionManager.hasActiveSession()) {
+                    sessionManager.getCurrentImage().saveAs(parts[1]);
+                } else {
+                    System.out.println("No active session.");
+                }
+                break;
             case "rotate":
-                if (!sessionManager.getImages().isEmpty()) {
-                    ImageProcessor current = sessionManager.getImages().get(sessionManager.getImages().size() - 1);
-                    current.rotate();
+                if (parts.length < 2) {
+                    System.out.println("Usage: rotate <left|right>");
+                    break;
+                }
+                if (sessionManager.hasActiveSession()) {
+                    sessionManager.getCurrentImage().rotate(parts[1]);
                 } else {
-                    System.out.println("No image loaded.");
+                    System.out.println("No active session.");
                 }
                 break;
-
-            case "grayscale":
-                if (!sessionManager.getImages().isEmpty()) {
-                    sessionManager.getImages().get(0).grayscale();
-                } else {
-                    System.out.println("No image loaded.");
-                }
-                break;
-            case "fliph":
-                if (!sessionManager.getImages().isEmpty()) {
-                    sessionManager.getImages().get(0).flipHorizontal();
-                } else {
-                    System.out.println("No image loaded.");
-                }
-                break;
-
-            case "flipv":
-                if (!sessionManager.getImages().isEmpty()) {
-                    sessionManager.getImages().get(0).flipVertical();
-                } else {
-                    System.out.println("No image loaded.");
-                }
-                break;
-
-            case "convert":
-                if (parts.length > 1) {
-                    if (!sessionManager.getImages().isEmpty()) {
-                        sessionManager.getImages().get(0).convertTo(parts[1]);
-                    } else {
-                        System.out.println("No image loaded.");
-                    }
-                } else {
-                    System.out.println("Usage: convert <P1 | P2>");
-                }
-                break;
-
             case "crop":
-                if (parts.length == 5) {
+                if (parts.length < 5) {
+                    System.out.println("Usage: crop x y w h");
+                    break;
+                }
+                if (sessionManager.hasActiveSession()) {
                     try {
                         int x = Integer.parseInt(parts[1]);
                         int y = Integer.parseInt(parts[2]);
                         int w = Integer.parseInt(parts[3]);
                         int h = Integer.parseInt(parts[4]);
-
-                        // Извикваме crop върху последното заредено изображение
-                        if (!sessionManager.getImages().isEmpty()) {
-                            ImageProcessor current = sessionManager.getImages().get(sessionManager.getImages().size() - 1);
-                            current.crop(x, y, w, h);
-                        } else {
-                            System.out.println("No image loaded.");
-                        }
+                        sessionManager.getCurrentImage().crop(x, y, w, h);
                     } catch (NumberFormatException e) {
-                        System.out.println("Invalid crop parameters.");
+                        System.out.println("Error: Invalid numbers.");
                     }
                 } else {
-                    System.out.println("Usage: crop <x> <y> <width> <height>");
+                    System.out.println("No active session.");
                 }
                 break;
-
-            case "save":
-                if (!sessionManager.getImages().isEmpty()) {
-                    sessionManager.getImages().get(0).save();
+            case "invert":
+                if (sessionManager.hasActiveSession()) {
+                    sessionManager.getCurrentImage().invert();
                 } else {
-                    System.out.println("No image to save.");
+                    System.out.println("No active session.");
                 }
                 break;
-
-            case "saveas":
-                if (parts.length > 1) {
-                    if (!sessionManager.getImages().isEmpty()) {
-                        sessionManager.getImages().get(0).saveAs(parts[1]);
+            case "grayscale":
+                if (sessionManager.hasActiveSession()) {
+                    sessionManager.getCurrentSession().applyToAllGrayscale();
+                } else {
+                    System.out.println("No active session.");
+                }
+                break;
+            case "monochrome":
+                if (sessionManager.hasActiveSession()) {
+                    sessionManager.getCurrentSession().applyToAllMonochrome();
+                } else {
+                    System.out.println("No active session.");
+                }
+                break;
+            case "negative":
+                if (sessionManager.hasActiveSession()) {
+                    sessionManager.getCurrentSession().applyToAllNegative();
+                } else {
+                    System.out.println("No active session.");
+                }
+                break;
+            case "flipH":
+                if (sessionManager.hasActiveSession()) {
+                    sessionManager.getCurrentImage().flipHorizontal();
+                } else {
+                    System.out.println("No active session.");
+                }
+                break;
+            case "flipV":
+                if (sessionManager.hasActiveSession()) {
+                    sessionManager.getCurrentImage().flipVertical();
+                } else {
+                    System.out.println("No active session.");
+                }
+                break;
+            case "convert":
+                if (parts.length < 2) {
+                    System.out.println("Usage: convert P1|P2");
+                    break;
+                }
+                if (sessionManager.hasActiveSession()) {
+                    sessionManager.getCurrentImage().convert(parts[1]);
+                } else {
+                    System.out.println("No active session.");
+                }
+                break;
+            case "undo":
+                if (sessionManager.hasActiveSession()) {
+                    sessionManager.getCurrentImage().undo();
+                } else {
+                    System.out.println("No active session.");
+                }
+                break;
+            case "add":
+                if (parts.length < 2) {
+                    System.out.println("Usage: add <image>");
+                    break;
+                }
+                String addName = parts[1];
+                ImageProcessor toAdd = new ImageProcessor(addName);
+                if (toAdd.load()) {
+                    sessionManager.addImageToCurrentSession(toAdd);
+                }
+                break;
+            case "session":
+                if (input.equals("session info")) {
+                    if (sessionManager.hasActiveSession()) {
+                        sessionManager.getCurrentSession().printInfo();
                     } else {
-                        System.out.println("No image to save.");
+                        System.out.println("No active session.");
                     }
                 } else {
-                    System.out.println("Usage: saveas <filename>");
+                    System.out.println("Unknown session command.");
+                }
+                break;
+            case "collage":
+                if (parts.length < 5) {
+                    System.out.println("Usage: collage <direction> <image1> <image2> <outimage>");
+                    break;
+                }
+                if (sessionManager.hasActiveSession()) {
+                    String dir = parts[1];
+                    String i1 = parts[2];
+                    String i2 = parts[3];
+                    String out = parts[4];
+                    sessionManager.getCurrentSession().createCollage(dir, i1, i2, out);
+                } else {
+                    System.out.println("No active session.");
                 }
                 break;
 
-            case "session info":
-                sessionManager.printSessionInfo();
+            case "switch":
+                if (parts.length < 2) {
+                    System.out.println("Usage: switch <sessionId>");
+                    break;
+                }
+                try {
+                    int sessionId = Integer.parseInt(parts[1]);
+                    sessionManager.switchSession(sessionId);
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid session ID.");
+                }
                 break;
-
-            case "help":
-                printHelp();
+            case "close":
+                sessionManager.closeSession();
                 break;
-
             case "exit":
-                running = false;
-                System.out.println("Exiting the program...");
+                System.out.println("Goodbye!");
+                System.exit(0);
                 break;
-
             default:
                 System.out.println("Unknown command. Type 'help' for a list of commands.");
         }
     }
 
-    private static void openFile(String filename) {
-        System.out.println("DEBUG: openFile() called with filename: " + filename);
-        File file = new File(System.getProperty("user.dir") + "/src/" + filename);
-
-        System.out.println("Checking file: " + file.getAbsolutePath());
-        if (!file.exists()) {
-            System.out.println("Error: File does not exist.");
-            return;
-        }
-
-        System.out.println("Successfully opened " + filename);
-    }
-
     private static void printHelp() {
-        System.out.println("The following commands are supported:");
-        System.out.println("open <file> - Opens a file");
-        System.out.println("load <file> - Loads an image into a session");
-        System.out.println("session info - Displays the current session details");
-        System.out.println("view - Displays the first loaded image");
-        System.out.println("invert - Inverts the colors of the currently loaded image");
-        System.out.println("rotate - Rotates the image 90 degrees clockwise");
-        System.out.println("grayscale - Converts a P3 image to grayscale");
-        System.out.println("fliph - Flips the image horizontally (left-right)");
-        System.out.println("flipv - Flips the image vertically (top-bottom)");
-        System.out.println("convert <P1 | P2> - Converts a P3 image to grayscale (P2) or black-and-white (P1)");
-        System.out.println("crop <x> <y> <width> <height> - Crops the image starting at (x,y) with given width and height");
-        System.out.println("save - Saves the current image to its original file");
-        System.out.println("saveas <file> - Saves the current image under a new filename");
-        System.out.println("exit - Exits the program");
-        System.out.println("help - Shows available commands");
+        System.out.println("Available commands:");
+        System.out.println("open <file>           - Opens a file");
+        System.out.println("load <file>           - Loads an image into a session");
+        System.out.println("view                  - Displays the current image");
+        System.out.println("save                  - Saves the current image");
+        System.out.println("saveas <filename>     - Saves the image with a new name");
+        System.out.println("rotate <left|right>   - Rotates the image 90 degrees");
+        System.out.println("crop x y w h          - Crops the image");
+        System.out.println("invert                - Inverts colors (P3 only)");
+        System.out.println("grayscale             - Converts image to grayscale");
+        System.out.println("monochrome            - Converts to black & white");
+        System.out.println("negative              - Inverts colors (all P3)");
+        System.out.println("flipH                 - Flips image horizontally");
+        System.out.println("flipV                 - Flips image vertically");
+        System.out.println("convert P1|P2         - Converts to P1 or P2");
+        System.out.println("undo                  - Undo last transformation");
+        System.out.println("add <image>           - Adds image to session");
+        System.out.println("session info          - Shows current session info");
+        System.out.println("collage <direction> <image1> <image2> <outimage> - Creates collage (horizontal|vertical)");
+        System.out.println("switch <sessionId>    - Switch session by ID");
+        System.out.println("close                 - Closes the session");
+        System.out.println("exit                  - Exits the program");
     }
 }

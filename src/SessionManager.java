@@ -1,39 +1,62 @@
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 public class SessionManager {
-    private List<ImageProcessor> images = new ArrayList<>();
+    private final List<Session> sessions = new ArrayList<>();
+    private Session currentSession;
+    private int sessionCounter = 0;
 
-    public void loadImage(String filename) {
-        File file = new File(System.getProperty("user.dir") + "/src/" + filename);
+    public void createSession(ImageProcessor image) {
+        Session session = new Session(++sessionCounter);
+        session.setCurrentImage(image);
+        sessions.add(session);
+        currentSession = session;
+        System.out.println("New session started with ID: " + sessionCounter);
+    }
 
-        System.out.println("DEBUG: Attempting to load file: " + file.getAbsolutePath());
-        if (!file.exists()) {
-            System.out.println("Error: Cannot find file " + file.getAbsolutePath());
-            return;
-        }
-        ImageProcessor imageProcessor = new ImageProcessor(file.getAbsolutePath());
-        if (imageProcessor.load()) {
-            images.add(imageProcessor);
-            System.out.println("Image successfully loaded: " + filename);
+    public boolean hasActiveSession() {
+        return currentSession != null;
+    }
+
+    public Session getCurrentSession() {
+        return currentSession;
+    }
+
+    public ImageProcessor getCurrentImage() {
+        return hasActiveSession() ? currentSession.getCurrentImage() : null;
+    }
+
+    public void addImageToCurrentSession(ImageProcessor image) {
+        if (hasActiveSession()) {
+            currentSession.setCurrentImage(image);
+            System.out.println("Image added to current session.");
         } else {
-            System.out.println("Failed to load image: " + filename);
+            System.out.println("No active session to add image.");
         }
     }
 
-    public List<ImageProcessor> getImages() {
-        return images;
-    }
-
-    public void printSessionInfo() {
-        if (images.isEmpty()) {
-            System.out.println("No images loaded in the session.");
-        } else {
-            System.out.println("Loaded Images:");
-            for (ImageProcessor image : images) {
-                System.out.println("- " + image.getFilename());
+    public boolean switchSession(int sessionId) {
+        for (Session session : sessions) {
+            if (session.getSessionId() == sessionId) {
+                currentSession = session;
+                System.out.println("Switched to session ID: " + sessionId);
+                return true;
             }
         }
+        System.out.println("Error: No session with ID: " + sessionId);
+        return false;
+    }
+
+    public void closeSession() {
+        if (currentSession != null) {
+            System.out.println("Session ID " + currentSession.getSessionId() + " closed.");
+            currentSession = null;
+        } else {
+            System.out.println("No session to close.");
+        }
+    }
+
+    public List<Session> getAllSessions() {
+        return sessions;
     }
 }

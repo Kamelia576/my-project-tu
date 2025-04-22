@@ -1,6 +1,8 @@
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Arrays;
+
 
 public class ImageProcessor {
     private String filename;
@@ -9,21 +11,16 @@ public class ImageProcessor {
     private int height;
     private int maxColor;
     private List<String> pixelData = new ArrayList<>();
+    private final List<List<String>> history = new ArrayList<>();
 
     public ImageProcessor(String filename) {
         this.filename = filename;
     }
 
     public boolean load() {
-        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader("src/" + filename))) {
             format = reader.readLine().trim();
-            System.out.println("DEBUG: Read format -> '" + format + "'");
-            if (!format.equals("P1") && !format.equals("P2") && !format.equals("P3")) {
-                System.out.println("Unsupported format: " + format);
-                return false;
-            }
-
-            String[] dimensions = reader.readLine().trim().split(" ");
+            String[] dimensions = reader.readLine().trim().split("\\s+");
             width = Integer.parseInt(dimensions[0]);
             height = Integer.parseInt(dimensions[1]);
 
@@ -31,12 +28,13 @@ public class ImageProcessor {
                 maxColor = Integer.parseInt(reader.readLine().trim());
             }
 
+            pixelData.clear();
             String line;
             while ((line = reader.readLine()) != null) {
                 pixelData.add(line.trim());
             }
 
-            System.out.println("Loaded " + filename + " successfully. Format: " + format);
+            System.out.println("Loaded src/" + filename + " successfully. Format: " + format);
             return true;
         } catch (IOException e) {
             System.out.println("Error loading file: " + e.getMessage());
@@ -44,293 +42,369 @@ public class ImageProcessor {
         }
     }
 
-    public String getFilename() {
-        return filename;
+    public void save() {
+        saveAs(filename);
     }
+
+    public void saveAs(String newFilename) {
+        try {
+            File outputDir = new File("src/output");
+            if (!outputDir.exists()) {
+                outputDir.mkdirs(); // създава папката, ако не съществува
+            }
+
+            PrintWriter writer = new PrintWriter("src/output/" + newFilename);
+            writer.println(format);
+            writer.println(width + " " + height);
+            if (!format.equals("P1")) {
+                writer.println(maxColor);
+            }
+            for (String line : pixelData) {
+                writer.println(line);
+            }
+            System.out.println("Image saved as: src/output/" + newFilename);
+            writer.close();
+        } catch (IOException e) {
+            System.out.println("Error saving file: " + e.getMessage());
+        }
+    }
+
 
     public void displayImage() {
         if (pixelData.isEmpty()) {
             System.out.println("No image data loaded.");
             return;
         }
-
-        System.out.println("Displaying image: " + filename);
         for (String line : pixelData) {
             System.out.println(line);
         }
     }
 
-    public void save() {
-        saveAs(filename);  // Save използва текущото име
+    private void saveState() {
+        history.add(new ArrayList<>(pixelData));
     }
 
-    public void saveAs(String newFilename) {
-        try {
-            // Проверка: ако няма директория в името, добавяме "src/"
-            String path = newFilename;
-            if (!newFilename.contains("/") && !newFilename.contains("\\")) {
-                path = "src/" + newFilename;
-            }
-
-            PrintWriter writer = new PrintWriter(path);
-            writer.println(format);
-            writer.println(width + " " + height);
-            writer.println(maxColor);
-            for (String line : pixelData) {
-                writer.println(line);
-            }
-            writer.close();
-            System.out.println("Image saved as: " + path);
-        } catch (IOException e) {
-            System.out.println("Error saving file: " + e.getMessage());
+    public void undo() {
+        if (!history.isEmpty()) {
+            pixelData = history.remove(history.size() - 1);
+            System.out.println("Undo successful.");
+        } else {
+            System.out.println("Nothing to undo.");
         }
+    }
+
+    public void rotate(String direction) {
+        saveState();
+        String[][] matrix = getMatrix();
+        String[][] rotated;
+
+        if (direction.equalsIgnoreCase("left")) {
+            rotated = new String[width][height];
+            for (int i = 0; i < height; i++) {
+                for (int j = 0; j < width; j++) {
+                    rotated[width - j - 1][i] = matrix[i][j];
+                }
+            }
+            int temp = width;
+            width = height;
+            height = temp;
+        } else {
+            rotated = new String[width][height];
+            for (int i = 0; i < height; i++) {
+                for (int j = 0; j < width; j++) {
+                    rotated[j][height - i - 1] = matrix[i][j];
+                }
+            }
+            int temp = width;
+            width = height;
+            height = temp;
+        }
+
+        pixelData.clear();
+        for (String[] row : rotated) {
+            StringBuilder sb = new StringBuilder();
+            for (String val : row) {
+                sb.append(val).append(" ");
+            }
+            pixelData.add(sb.toString().trim());
+        }
+
+        System.out.println("Image rotated " + direction + ".");
+    }
+
+    public void crop(int x, int y, int w, int h) {
+        saveState();
+        String[][] matrix = getMatrix();
+        List<String> newPixelData = new ArrayList<>();
+        for (int i = y; i < y + h && i < height; i++) {
+            StringBuilder line = new StringBuilder();
+            String[] row = matrix[i];
+            for (int j = x; j < x + w && j < width; j++) {
+                line.append(row[j]).append(" ");
+            }
+            newPixelData.add(line.toString().trim());
+        }
+        pixelData = newPixelData;
+        width = w;
+        height = h;
+        System.out.println("Image cropped.");
     }
 
     public void invert() {
-        if (format.equals("P3")) { // Color image
-            List<String> newPixelData = new ArrayList<>();
-            for (String line : pixelData) {
-                StringBuilder newLine = new StringBuilder();
-                String[] tokens = line.trim().split("\\s+");
-                for (String token : tokens) {
-                    try {
-                        int value = Integer.parseInt(token);
-                        int inverted = maxColor - value;
-                        newLine.append(inverted).append(" ");
-                    } catch (NumberFormatException e) {
-                        newLine.append(token).append(" ");
-                    }
-                }
-                newPixelData.add(newLine.toString().trim());
-            }
-            pixelData = newPixelData;
-            System.out.println("Image colors inverted.");
-        } else {
-            System.out.println("Invert operation is currently supported only for P3 images.");
-        }
-    }
-
-    public void crop(int startX, int startY, int cropWidth, int cropHeight) {
-        if (!format.equals("P2") && !format.equals("P3")) {
-            System.out.println("Crop operation is only supported for P2 and P3 formats.");
+        if (!format.equals("P3")) {
+            System.out.println("Invert only supported for P3 format.");
             return;
         }
 
-        List<String> newPixelData = new ArrayList<>();
-        int pixelsPerLine = (format.equals("P3")) ? width * 3 : width;
-        List<String> allPixels = new ArrayList<>();
+        saveState();
 
-        // Обединяваме всички пиксели в един списък
+        List<String> invertedData = new ArrayList<>();
+
         for (String line : pixelData) {
-            for (String token : line.trim().split("\\s+")) {
-                if (!token.isEmpty()) {
-                    allPixels.add(token);
-                }
-            }
-        }
-
-        // Изрязване ред по ред
-        for (int row = 0; row < cropHeight; row++) {
-            int y = startY + row;
-            if (y >= height) break;
-
+            String[] parts = line.trim().split("\\s+");
             StringBuilder newLine = new StringBuilder();
-            for (int col = 0; col < cropWidth; col++) {
-                int x = startX + col;
-                if (x >= width) break;
 
-                int index = (y * width + x) * (format.equals("P3") ? 3 : 1);
-                if (index < allPixels.size()) {
-                    if (format.equals("P3")) {
-                        newLine.append(allPixels.get(index)).append(" ");
-                        newLine.append(allPixels.get(index + 1)).append(" ");
-                        newLine.append(allPixels.get(index + 2)).append(" ");
-                    } else {
-                        newLine.append(allPixels.get(index)).append(" ");
-                    }
+            for (String value : parts) {
+                try {
+                    int pixel = Integer.parseInt(value);
+                    int inverted = maxColor - pixel;
+                    newLine.append(inverted).append(" ");
+                } catch (NumberFormatException e) {
+                    newLine.append(value).append(" ");
                 }
             }
-            newPixelData.add(newLine.toString().trim());
+
+            invertedData.add(newLine.toString().trim());
         }
 
-        // Обновяване на размери и пикселни данни
-        this.width = cropWidth;
-        this.height = cropHeight;
-        this.pixelData = newPixelData;
-
-        System.out.println("Image cropped successfully.");
+        pixelData = invertedData;
+        System.out.println("Invert (negative) transformation applied.");
     }
 
-    public void rotate() {
-        if (!format.equals("P2") && !format.equals("P3")) {
-            System.out.println("Rotate operation is only supported for P2 and P3 formats.");
-            return;
-        }
-
-        List<String> allPixels = new ArrayList<>();
-        for (String line : pixelData) {
-            for (String token : line.trim().split("\\s+")) {
-                if (!token.isEmpty()) {
-                    allPixels.add(token);
-                }
-            }
-        }
-
-        int newWidth = height;
-        int newHeight = width;
-        List<String> newPixelData = new ArrayList<>();
-
-        if (format.equals("P3")) {
-            for (int x = 0; x < width; x++) {
-                StringBuilder row = new StringBuilder();
-                for (int y = height - 1; y >= 0; y--) {
-                    int index = (y * width + x) * 3;
-                    if (index + 2 < allPixels.size()) {
-                        row.append(allPixels.get(index)).append(" ")
-                                .append(allPixels.get(index + 1)).append(" ")
-                                .append(allPixels.get(index + 2)).append(" ");
-                    }
-                }
-                newPixelData.add(row.toString().trim());
-            }
-        } else {
-            for (int x = 0; x < width; x++) {
-                StringBuilder row = new StringBuilder();
-                for (int y = height - 1; y >= 0; y--) {
-                    int index = y * width + x;
-                    if (index < allPixels.size()) {
-                        row.append(allPixels.get(index)).append(" ");
-                    }
-                }
-                newPixelData.add(row.toString().trim());
-            }
-        }
-
-        this.width = newWidth;
-        this.height = newHeight;
-        this.pixelData = newPixelData;
-
-        System.out.println("Image rotated 90 degrees clockwise.");
-    }
 
     public void grayscale() {
         if (!format.equals("P3")) {
-            System.out.println("Grayscale operation is only supported for P3 format.");
+            System.out.println("Grayscale transformation is only applicable to P3 images.");
             return;
         }
 
-        List<String> newPixelData = new ArrayList<>();
+        saveState(); // За undo
+
+        List<String> grayData = new ArrayList<>();
+
         for (String line : pixelData) {
+            String[] parts = line.trim().split("\\s+");
             StringBuilder newLine = new StringBuilder();
-            String[] tokens = line.trim().split("\\s+");
-            for (int i = 0; i < tokens.length; i += 3) {
+
+            for (int i = 0; i + 2 < parts.length; i += 3) {
                 try {
-                    int r = Integer.parseInt(tokens[i]);
-                    int g = Integer.parseInt(tokens[i + 1]);
-                    int b = Integer.parseInt(tokens[i + 2]);
-                    int avg = (r + g + b) / 3;
-                    newLine.append(avg).append(" ").append(avg).append(" ").append(avg).append(" ");
-                } catch (Exception e) {
-                    newLine.append("0 0 0 ");
+                    int r = Integer.parseInt(parts[i]);
+                    int g = Integer.parseInt(parts[i + 1]);
+                    int b = Integer.parseInt(parts[i + 2]);
+
+                    int gray = (r + g + b) / 3;
+                    newLine.append(gray).append(" ").append(gray).append(" ").append(gray).append(" ");
+                } catch (NumberFormatException e) {
+                    // Пропуска невалидни стойности
                 }
             }
-            newPixelData.add(newLine.toString().trim());
+
+            grayData.add(newLine.toString().trim());
         }
 
-        this.pixelData = newPixelData;
-        System.out.println("Image converted to grayscale.");
+        pixelData = grayData;
+        System.out.println("Grayscale transformation applied.");
     }
 
-    public void flipHorizontal() {
-        List<String> newPixelData = new ArrayList<>();
+
+
+    public void monochrome() {
+        if (!format.equals("P2")) {
+            System.out.println("Monochrome transformation is only applicable to P2 images.");
+            return;
+        }
+
+        saveState(); // За undo
+        List<String> updatedData = new ArrayList<>();
+        int threshold = maxColor / 2;
 
         for (String line : pixelData) {
-            String[] tokens = line.trim().split("\\s+");
+            String[] parts = line.trim().split("\\s+");
+            StringBuilder newLine = new StringBuilder();
 
-            if (format.equals("P1") || format.equals("P2")) {
-                reverseLine(tokens);
-            } else if (format.equals("P3")) {
-                // За P3 трябва да разменяме тройки (R G B)
-                for (int i = 0; i < tokens.length / 2; i += 3) {
-                    int j = tokens.length - 3 - i;
-                    for (int k = 0; k < 3; k++) {
-                        String temp = tokens[i + k];
-                        tokens[i + k] = tokens[j + k];
-                        tokens[j + k] = temp;
+            for (String value : parts) {
+                try {
+                    int pixel = Integer.parseInt(value);
+                    if (pixel < threshold) {
+                        newLine.append("0 ");
+                    } else {
+                        newLine.append("255 ");
                     }
+                } catch (NumberFormatException e) {
+                    // Пропуска невалидна стойност
                 }
             }
 
-            newPixelData.add(String.join(" ", tokens));
+            updatedData.add(newLine.toString().trim());
         }
 
-        pixelData = newPixelData;
+        pixelData = updatedData;
+        System.out.println("Monochrome transformation applied.");
+    }
+
+
+    public void negative() {
+        saveState(); // за undo
+        List<String> updatedData = new ArrayList<>();
+
+        for (String line : pixelData) {
+            String[] parts = line.trim().split("\\s+");
+            StringBuilder newLine = new StringBuilder();
+
+            for (String value : parts) {
+                try {
+                    int pixel = Integer.parseInt(value);
+                    int inverted = maxColor - pixel;
+                    newLine.append(inverted).append(" ");
+                } catch (NumberFormatException e) {
+                    // Пропуска невалидна стойност
+                }
+            }
+
+            updatedData.add(newLine.toString().trim());
+        }
+
+        pixelData = updatedData;
+        System.out.println("Negative transformation applied.");
+    }
+
+
+
+
+
+    public void flipHorizontal() {
+        saveState();
+        List<String> flipped = new ArrayList<>();
+        for (String line : pixelData) {
+            String[] tokens = line.split(" ");
+            StringBuilder sb = new StringBuilder();
+            for (int i = tokens.length - 1; i >= 0; i--) {
+                sb.append(tokens[i]).append(" ");
+            }
+            flipped.add(sb.toString().trim());
+        }
+        pixelData = flipped;
         System.out.println("Image flipped horizontally.");
     }
 
-    private void reverseLine(String[] tokens) {
-        for (int i = 0, j = tokens.length - 1; i < j; i++, j--) {
-            String temp = tokens[i];
-            tokens[i] = tokens[j];
-            tokens[j] = temp;
-        }
-    }
     public void flipVertical() {
-        List<String> newPixelData = new ArrayList<>();
-
+        saveState();
+        List<String> flipped = new ArrayList<>();
         for (int i = pixelData.size() - 1; i >= 0; i--) {
-            newPixelData.add(pixelData.get(i));
+            flipped.add(pixelData.get(i));
         }
-
-        pixelData = newPixelData;
+        pixelData = flipped;
         System.out.println("Image flipped vertically.");
     }
-    public void convertTo(String targetFormat) {
-        if (!format.trim().equals("P3")) {
-            System.out.println("Conversion only supported from P3 format.");
+
+    public void convert(String targetFormat) {
+        if (!targetFormat.equals("P1") && !targetFormat.equals("P2")) {
+            System.out.println("Unsupported format: " + targetFormat);
             return;
         }
 
-        List<String> newPixelData = new ArrayList<>();
-
-        for (String line : pixelData) {
-            StringBuilder newLine = new StringBuilder();
-            String[] tokens = line.trim().split("\\s+");
-
-            for (int i = 0; i < tokens.length; i += 3) {
-                try {
-                    int r = Integer.parseInt(tokens[i]);
-                    int g = Integer.parseInt(tokens[i + 1]);
-                    int b = Integer.parseInt(tokens[i + 2]);
-
-                    if (targetFormat.equals("P2")) {
-                        int gray = (r + g + b) / 3;
-                        newLine.append(gray).append(" ");
-                    } else if (targetFormat.equals("P1")) {
-                        int gray = (r + g + b) / 3;
-                        int bw = gray > 127 ? 0 : 1;
-                        newLine.append(bw).append(" ");
-                    }
-                } catch (Exception e) {
-                    newLine.append("0 ");
-                }
-            }
-
-            newPixelData.add(newLine.toString().trim());
+        if (format.equals(targetFormat)) {
+            System.out.println("Image is already in format " + targetFormat);
+            return;
         }
 
-        this.pixelData = newPixelData;
-        this.format = targetFormat;
-        this.maxColor = targetFormat.equals("P1") ? 1 : 255;
+        saveState(); // За undo
 
-        if (targetFormat.equals("P1")) {
-            System.out.println("Image converted to black and white (P1).");
-        } else if (targetFormat.equals("P2")) {
-            System.out.println("Image converted to grayscale (P2).");
-        } else if (targetFormat.equals("P3")) {
-            System.out.println("Image remains in color (P3).");
-        } else {
-            System.out.println("Image converted to format: " + targetFormat);
+        // Ако има цветни пиксели и преминаваме към P1 или P2, трябва да изведем предупреждение.
+        if (format.equals("P3")) {
+            List<String> newPixelData = new ArrayList<>();
+            for (String line : pixelData) {
+                String[] parts = line.trim().split("\\s+");
+                StringBuilder builder = new StringBuilder();
+                for (int i = 0; i + 2 < parts.length; i += 3) {
+                    try {
+                        int r = Integer.parseInt(parts[i]);
+                        int g = Integer.parseInt(parts[i + 1]);
+                        int b = Integer.parseInt(parts[i + 2]);
+                        int gray = (r + g + b) / 3;
+                        builder.append(gray).append(" ");
+                    } catch (NumberFormatException e) {
+                        builder.append(parts[i]).append(" ");
+                    }
+                }
+                newPixelData.add(builder.toString().trim());
+            }
+            pixelData = newPixelData;
+        }
+
+        format = targetFormat;
+        System.out.println("Image converted to " + targetFormat);
+    }
+
+
+    private String[][] getMatrix() {
+        String[][] matrix = new String[height][];
+        for (int i = 0; i < height; i++) {
+            matrix[i] = pixelData.get(i).split(" ");
+        }
+        return matrix;
+    }
+
+    public String getFilename() {
+        return filename;
+    }
+
+    public String getFormat() {
+        return format;
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    public int getMaxColor() {
+        return maxColor;
+    }
+
+    public List<String> getPixelData() {
+        return pixelData;
+    }
+
+    public void setPixelData(List<String> data) {
+        this.pixelData = data;
+    }
+
+    public void setFilename(String filename) {
+        this.filename = filename;
+    }
+
+    public void setFormat(String format) {
+        this.format = format;
+    }
+
+    public void setWidth(int width) {
+        this.width = width;
+    }
+
+    public void setHeight(int height) {
+        this.height = height;
+    }
+
+    public void setMaxColor(int maxColor) {
+        this.maxColor = maxColor;
+    }
+    public void view() {
+        for (String line : pixelData) {
+            System.out.println(line);
         }
     }
 }
